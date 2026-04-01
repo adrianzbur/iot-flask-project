@@ -1,0 +1,610 @@
+<!--
+=============================================================================
+FRONTEND B — Klientsky / IoT Pohľad
+=============================================================================
+Táto stránka REPREZENTUJE DRUHÚ DOMÉNU v IoT architektúre.
+
+V produkcii by bežala na inej URL, napr.:
+  Frontend A: http://iot-admin.azurewebsites.net
+  Frontend B: http://iot-klient.azurewebsites.net  ← toto
+
+Kľúčové koncepty:
+  1. Táto stránka ŽIADNE dáta nezadáva — iba ČÍTA z API
+  2. Komunikuje s backendom cez fetch() — GET requesty na API endpointy
+  3. Dáta sa automaticky obnovia každých 5 sekúnd (polling)
+  4. CORS musí byť povolený na backende, inak komunikácia zlyhá
+
+Pre študentov: Toto je príklad toho, ako IoT dashboard zobrazuje dáta
+               zo senzorov alebo výsledky spracované na serveri.
+=============================================================================
+-->
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📡 Frontend B — IoT Klient</title>
+    <style>
+        /* ---------- ZÁKLAD ---------- */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+            min-height: 100vh;
+            color: #e0e0e0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        /* ---------- HLAVIČKA ---------- */
+        .header {
+            text-align: center;
+            padding: 30px 0;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            color: #e94560;
+            margin-bottom: 10px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            margin: 4px;
+        }
+
+        .badge-red {
+            background: rgba(233, 69, 96, 0.15);
+            color: #e94560;
+            border: 1px solid rgba(233, 69, 96, 0.3);
+        }
+
+        .badge-green {
+            background: rgba(0, 200, 83, 0.15);
+            color: #00c853;
+            border: 1px solid rgba(0, 200, 83, 0.3);
+        }
+
+        /* ---------- STATUS BAR ---------- */
+        /* Zobrazuje stav pripojenia k backendu — živá ukážka komunikácie */
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 16px 24px;
+            margin-bottom: 24px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+        .status-dot.online {
+            background: #00c853;
+            box-shadow: 0 0 10px rgba(0, 200, 83, 0.5);
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.offline {
+            background: #ff5252;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* ---------- KARTY ---------- */
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 28px;
+            margin-bottom: 24px;
+            backdrop-filter: blur(10px);
+        }
+
+        .card h2 {
+            color: #e94560;
+            margin-bottom: 16px;
+            font-size: 1.3em;
+        }
+
+        /* ---------- POSLEDNÝ VÝPOČET (veľký display) ---------- */
+        .big-display {
+            text-align: center;
+            padding: 30px;
+        }
+
+        .big-number {
+            font-size: 4em;
+            font-weight: 700;
+            color: #e94560;
+            text-shadow: 0 0 30px rgba(233, 69, 96, 0.3);
+        }
+
+        .big-detail {
+            color: #8892b0;
+            font-size: 1.1em;
+            margin-top: 10px;
+        }
+
+        .big-time {
+            color: #555;
+            font-size: 0.85em;
+            margin-top: 8px;
+        }
+
+        /* ---------- ŠTATISTIKY GRID ---------- */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.8em;
+            font-weight: 700;
+            color: #e94560;
+        }
+
+        .stat-label {
+            color: #8892b0;
+            font-size: 0.8em;
+            margin-top: 4px;
+            text-transform: uppercase;
+        }
+
+        /* ---------- LIVE FEED ---------- */
+        .live-feed {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .feed-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            transition: background 0.3s;
+        }
+
+        .feed-item:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .feed-item.new {
+            animation: highlightNew 2s ease;
+        }
+
+        @keyframes highlightNew {
+            from { background: rgba(233, 69, 96, 0.2); }
+            to { background: transparent; }
+        }
+
+        .feed-id {
+            color: #e94560;
+            font-weight: 700;
+            font-size: 0.85em;
+            min-width: 50px;
+        }
+
+        .feed-calc {
+            color: #e0e0e0;
+            flex-grow: 1;
+            padding: 0 15px;
+        }
+
+        .feed-result {
+            color: #e94560;
+            font-weight: 700;
+            font-size: 1.1em;
+            min-width: 80px;
+            text-align: right;
+        }
+
+        .feed-time {
+            color: #555;
+            font-size: 0.75em;
+            min-width: 130px;
+            text-align: right;
+        }
+
+        /* ---------- KONFIGURÁCIA PANEL ---------- */
+        .config-panel {
+            background: rgba(233, 69, 96, 0.08);
+            border: 1px solid rgba(233, 69, 96, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+
+        .config-panel h3 {
+            color: #e94560;
+            margin-bottom: 10px;
+        }
+
+        .config-panel code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            color: #e94560;
+            font-size: 0.9em;
+        }
+
+        .config-input {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+            align-items: center;
+        }
+
+        .config-input input {
+            flex-grow: 1;
+            padding: 10px 14px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+        }
+
+        .config-input button {
+            padding: 10px 20px;
+            background: #e94560;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .config-input button:hover {
+            background: #c73e54;
+        }
+
+        /* ---------- EMPTY STATE ---------- */
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #8892b0;
+        }
+
+        .empty-state .emoji {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+
+        <!-- ═══════════════════════════════════════════════════
+             HLAVIČKA
+             ═══════════════════════════════════════════════════ -->
+        <div class="header">
+            <h1>📡 IoT Klient Dashboard</h1>
+            <p style="color: #8892b0;">
+                Frontend B — Klientský pohľad (druhá doména)
+            </p>
+            <div style="margin-top: 12px;">
+                <span class="badge badge-red">Len čítanie</span>
+                <span class="badge badge-red">CORS</span>
+                <span class="badge badge-green">Auto-refresh 5s</span>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════
+             KONFIGURÁCIA BACKENDU
+             ═══════════════════════════════════════════════════
+             Študent tu zadá URL svojho backendu.
+             V reálnom nasadení by toto bolo napevno v kóde.
+             ═══════════════════════════════════════════════════ -->
+        <div class="config-panel">
+            <h3>⚙️ Pripojenie na backend</h3>
+            <p style="color: #8892b0; font-size: 0.9em;">
+                Zadajte URL backendu, odkiaľ sa budú načítavať dáta.
+                Backend musí mať povolený <code>CORS</code>, inak komunikácia zlyhá!
+            </p>
+            <div class="config-input">
+                <input type="text" id="backendUrl"
+                       placeholder="http://localhost:5000"
+                       value="">
+                <button onclick="pripojNaBackend()">Pripojiť</button>
+            </div>
+            <p style="color: #555; font-size: 0.8em; margin-top: 8px;">
+                Lokálne: <code>http://localhost:5000</code> |
+                Azure: <code>http://tvoj-backend.azurewebsites.net</code>
+            </p>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════
+             STATUS BAR — Stav pripojenia
+             ═══════════════════════════════════════════════════ -->
+        <div class="status-bar">
+            <div>
+                <span class="status-dot offline" id="statusDot"></span>
+                <span id="statusText">Nepripojené</span>
+            </div>
+            <div style="color: #8892b0; font-size: 0.85em;">
+                Posledná aktualizácia: <span id="lastUpdate">—</span>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════
+             POSLEDNÝ VÝPOČET (veľký display)
+             ═══════════════════════════════════════════════════ -->
+        <div class="card">
+            <h2>🎯 Posledný výpočet</h2>
+            <div class="big-display" id="poslednyDisplay">
+                <div class="empty-state">
+                    <div class="emoji">📡</div>
+                    <p>Pripojte sa na backend pre zobrazenie dát</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════
+             ŠTATISTIKY
+             ═══════════════════════════════════════════════════ -->
+        <div class="card">
+            <h2>📈 Štatistiky</h2>
+            <div class="stats-grid" id="statsGrid">
+                <div class="stat-card">
+                    <div class="stat-value" id="statPocet">—</div>
+                    <div class="stat-label">Celkom výpočtov</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statPriemer">—</div>
+                    <div class="stat-label">Priemerný výsledok</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statPlus">—</div>
+                    <div class="stat-label">Sčítania</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statMinus">—</div>
+                    <div class="stat-label">Odčítania</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════
+             LIVE FEED — Všetky výpočty
+             ═══════════════════════════════════════════════════
+             Automaticky sa obnovuje každých 5 sekúnd.
+             Simuluje "live" dáta z IoT senzorov.
+             ═══════════════════════════════════════════════════ -->
+        <div class="card">
+            <h2>📋 Live Feed</h2>
+            <p style="color: #8892b0; margin-bottom: 15px; font-size: 0.9em;">
+                Dáta z API endpointu <code style="background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; color: #e94560;">/api/historia</code>
+                — automatická obnova každých 5 sekúnd
+            </p>
+            <div class="live-feed" id="liveFeed">
+                <div class="empty-state">
+                    <p>Čakám na pripojenie...</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         JAVASCRIPT — Komunikácia s backendom
+         ═══════════════════════════════════════════════════════════════════
+         KĽÚČOVÉ KONCEPTY PRE ŠTUDENTOV:
+
+         1. fetch() API
+            - Moderný spôsob posielania HTTP requestov z JavaScriptu
+            - Vracia Promise (asynchrónny výsledok)
+            - Nahradzuje starší XMLHttpRequest (XHR)
+
+         2. CORS (Cross-Origin Resource Sharing)
+            - Prehliadač blokuje requesty na INÚ doménu (bezpečnosť)
+            - Backend musí poslať hlavičku: Access-Control-Allow-Origin
+            - flask-cors to rieši automaticky
+
+         3. Polling (pravidelné dopytovanie)
+            - setInterval() = opakuj funkciu každých X milisekúnd
+            - Alternatíva: WebSocket (trvalé spojenie) — pokročilejšie
+         ═══════════════════════════════════════════════════════════════════ -->
+    <script>
+        // ──────────────────────────────────────────────────────────────
+        // GLOBÁLNE PREMENNÉ
+        // ──────────────────────────────────────────────────────────────
+        let backendUrl = "";          // URL backendu (nastaví sa po pripojení)
+        let refreshInterval = null;    // ID intervalu (na zastavenie)
+        let poslednePocetZaznamov = 0; // Na detekciu nových záznamov
+
+        // ──────────────────────────────────────────────────────────────
+        // PRIPOJENIE NA BACKEND
+        // ──────────────────────────────────────────────────────────────
+        function pripojNaBackend() {
+            let url = document.getElementById("backendUrl").value.trim();
+
+            // Predvolená hodnota
+            if (!url) url = window.location.origin;
+
+            // Odstránime koncové lomítko
+            backendUrl = url.replace(/\/$/, "");
+
+            console.log("🔗 Pripájam sa na:", backendUrl);
+
+            // Zastavíme predchádzajúci interval (ak existuje)
+            if (refreshInterval) clearInterval(refreshInterval);
+
+            // Prvé načítanie dát
+            nacitajVsetko();
+
+            // Nastavíme automatickú obnovu každých 5 sekúnd (5000 ms)
+            // Toto je "polling" — najprostejší spôsob live dát
+            refreshInterval = setInterval(nacitajVsetko, 5000);
+        }
+
+        // ──────────────────────────────────────────────────────────────
+        // NAČÍTANIE VŠETKÝCH DÁT
+        // ──────────────────────────────────────────────────────────────
+        async function nacitajVsetko() {
+            try {
+                // Paralelné načítanie z dvoch endpointov naraz
+                // Promise.all() = počká, kým sa dokončia OBE operácie
+                const [historiaRes, statsRes] = await Promise.all([
+                    fetch(`${backendUrl}/api/historia`),
+                    fetch(`${backendUrl}/api/statistiky`)
+                ]);
+
+                // ─── CORS CHECK ───
+                // Ak fetch() uspeje, znamená to, že CORS je správne nastavený.
+                // Ak CORS nie je povolený, fetch() vyhodí chybu → catch blok.
+
+                const historia = await historiaRes.json();
+                const stats = await statsRes.json();
+
+                // Aktualizujeme UI
+                aktualizujStatus(true);
+                zobrazPosledny(historia);
+                zobrazStatistiky(stats);
+                zobrazLiveFeed(historia);
+
+            } catch (error) {
+                console.error("❌ Chyba pri načítaní dát:", error);
+                aktualizujStatus(false);
+
+                // Typická chyba pri CORS probléme:
+                // "TypeError: Failed to fetch" alebo "CORS policy" v konzole
+            }
+        }
+
+        // ──────────────────────────────────────────────────────────────
+        // AKTUALIZÁCIA STAVU PRIPOJENIA
+        // ──────────────────────────────────────────────────────────────
+        function aktualizujStatus(jeOnline) {
+            const dot = document.getElementById("statusDot");
+            const text = document.getElementById("statusText");
+            const update = document.getElementById("lastUpdate");
+
+            if (jeOnline) {
+                dot.className = "status-dot online";
+                text.textContent = `Pripojené na ${backendUrl}`;
+                update.textContent = new Date().toLocaleTimeString("sk-SK");
+            } else {
+                dot.className = "status-dot offline";
+                text.textContent = "Chyba pripojenia (skontrolujte CORS a URL)";
+            }
+        }
+
+        // ──────────────────────────────────────────────────────────────
+        // ZOBRAZENIE POSLEDNÉHO VÝPOČTU
+        // ──────────────────────────────────────────────────────────────
+        function zobrazPosledny(historia) {
+            const display = document.getElementById("poslednyDisplay");
+
+            if (!historia || historia.length === 0) {
+                display.innerHTML = `
+                    <div class="empty-state">
+                        <div class="emoji">📭</div>
+                        <p>Zatiaľ žiadne výpočty. Zadajte niečo na Frontende A!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const posledny = historia[0]; // Najnovší (ORDER BY DESC)
+            const symboly = { plus: "+", minus: "−", krat: "×", deleno: "÷" };
+            const sym = symboly[posledny.operacia] || "?";
+
+            display.innerHTML = `
+                <div class="big-number">${posledny.vysledok}</div>
+                <div class="big-detail">${posledny.cislo1} ${sym} ${posledny.cislo2}</div>
+                <div class="big-time">ID: #${posledny.id} | ${posledny.cas}</div>
+            `;
+        }
+
+        // ──────────────────────────────────────────────────────────────
+        // ZOBRAZENIE ŠTATISTÍK
+        // ──────────────────────────────────────────────────────────────
+        function zobrazStatistiky(stats) {
+            document.getElementById("statPocet").textContent = stats.celkovy_pocet || 0;
+            document.getElementById("statPriemer").textContent =
+                stats.priemerny_vysledok ? stats.priemerny_vysledok.toFixed(2) : "0";
+            document.getElementById("statPlus").textContent =
+                stats.podla_operacie?.plus || 0;
+            document.getElementById("statMinus").textContent =
+                stats.podla_operacie?.minus || 0;
+        }
+
+        // ──────────────────────────────────────────────────────────────
+        // ZOBRAZENIE LIVE FEEDU
+        // ──────────────────────────────────────────────────────────────
+        function zobrazLiveFeed(historia) {
+            const feed = document.getElementById("liveFeed");
+
+            if (!historia || historia.length === 0) {
+                feed.innerHTML = `
+                    <div class="empty-state">
+                        <p>Čakám na dáta...</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const symboly = { plus: "+", minus: "−", krat: "×", deleno: "÷" };
+            const jeNovy = historia.length > poslednePocetZaznamov;
+            poslednePocetZaznamov = historia.length;
+
+            let html = "";
+            historia.forEach((item, index) => {
+                const sym = symboly[item.operacia] || "?";
+                const novyClass = (index === 0 && jeNovy) ? "new" : "";
+
+                html += `
+                    <div class="feed-item ${novyClass}">
+                        <span class="feed-id">#${item.id}</span>
+                        <span class="feed-calc">${item.cislo1} ${sym} ${item.cislo2}</span>
+                        <span class="feed-result">${item.vysledok}</span>
+                        <span class="feed-time">${item.cas}</span>
+                    </div>
+                `;
+            });
+
+            feed.innerHTML = html;
+        }
+
+        // ──────────────────────────────────────────────────────────────
+        // INICIALIZÁCIA
+        // ──────────────────────────────────────────────────────────────
+        // Predvyplníme URL pole aktuálnou doménou
+        document.getElementById("backendUrl").value = window.location.origin;
+
+        // Automatické pripojenie (ak sme na rovnakej doméne)
+        pripojNaBackend();
+    </script>
+</body>
+</html>
