@@ -1,19 +1,14 @@
 <!--
 =============================================================================
-FRONTEND A — Administračný panel (Kalkulačka)
+FRONTEND A — Administračný panel (Kalkulačka + Prevodník jednotiek)
 =============================================================================
-Táto stránka slúži na:
-  1. Zadávanie čísel a výber operácie
-  2. Odoslanie dát na backend cez GET request
-  3. Zobrazenie výsledku
-  4. Prezeranie histórie výpočtov
+Rozšírená verzia o prevodník IoT jednotiek.
 
-HTML prvky podľa zadania:
-  ✅ Text input   — zadanie čísel
-  ✅ Check button  — výber operácie (radio buttons)
-  ✅ Submit button — odoslanie formulára
-
-Komunikácia: GET request → parametre viditeľné v URL riadku prehliadača
+NOVÉ prvky podľa zadania:
+  ✅ <input type="number">  — zadanie hodnoty na prevod
+  ✅ <select>               — výber typu prevodu
+  ✅ <button type="submit"> — odoslanie formulára prevodníka
+  ✅ Zobrazenie výsledku prevodu na stránke
 =============================================================================
 -->
 <!DOCTYPE html>
@@ -22,19 +17,8 @@ Komunikácia: GET request → parametre viditeľné v URL riadku prehliadača
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🛠️ Frontend A — IoT Administrácia</title>
-
-    <!-- ═══════════════════════════════════════════════════════════════════
-         CSS ŠTÝLY
-         Všetko je v jednom súbore pre jednoduchosť študentov.
-         ═══════════════════════════════════════════════════════════════════ -->
     <style>
-        /* ---------- RESET A ZÁKLADY ---------- */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
@@ -42,63 +26,30 @@ Komunikácia: GET request → parametre viditeľné v URL riadku prehliadača
             color: #e0e0e0;
             padding: 20px;
         }
-
-        /* ---------- HLAVNÝ KONTAJNER ---------- */
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-        }
-
-        /* ---------- HLAVIČKA ---------- */
-        .header {
-            text-align: center;
-            padding: 30px 0;
-        }
-
-        .header h1 {
-            font-size: 2em;
-            color: #00d4ff;
-            margin-bottom: 10px;
-        }
-
-        .header p {
-            color: #8892b0;
-            font-size: 0.95em;
-        }
-
-        /* ---------- BADGE (štítky) ---------- */
+        .container { max-width: 800px; margin: 0 auto; }
+        .header { text-align: center; padding: 30px 0; }
+        .header h1 { font-size: 2em; color: #00d4ff; margin-bottom: 10px; }
+        .header p { color: #8892b0; font-size: 0.95em; }
         .badge {
             display: inline-block;
-            background: rgba(0, 212, 255, 0.15);
+            background: rgba(0,212,255,0.15);
             color: #00d4ff;
             padding: 4px 12px;
             border-radius: 20px;
             font-size: 0.8em;
             margin: 4px;
-            border: 1px solid rgba(0, 212, 255, 0.3);
+            border: 1px solid rgba(0,212,255,0.3);
         }
-
-        /* ---------- KARTA (spoločný štýl) ---------- */
         .card {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
             border-radius: 16px;
             padding: 30px;
             margin-bottom: 24px;
             backdrop-filter: blur(10px);
         }
-
-        .card h2 {
-            color: #00d4ff;
-            margin-bottom: 20px;
-            font-size: 1.3em;
-        }
-
-        /* ---------- FORMULÁR ---------- */
-        .form-group {
-            margin-bottom: 20px;
-        }
-
+        .card h2 { color: #00d4ff; margin-bottom: 20px; font-size: 1.3em; }
+        .form-group { margin-bottom: 20px; }
         .form-group label {
             display: block;
             margin-bottom: 8px;
@@ -106,68 +57,64 @@ Komunikácia: GET request → parametre viditeľné v URL riadku prehliadača
             font-size: 0.9em;
             font-weight: 600;
         }
-
-        /* --- Text Input (vstupné pole) --- */
-        /* Toto je HTML element <input type="text"> */
-        .form-group input[type="text"],
         .form-group input[type="number"] {
             width: 100%;
             padding: 12px 16px;
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.2);
             border-radius: 8px;
             color: #fff;
             font-size: 1.1em;
             transition: border-color 0.3s;
         }
-
         .form-group input:focus {
             outline: none;
             border-color: #00d4ff;
-            box-shadow: 0 0 15px rgba(0, 212, 255, 0.2);
+            box-shadow: 0 0 15px rgba(0,212,255,0.2);
         }
-
-        /* --- Radio Buttons (výber operácie) --- */
-        /* Radio buttons fungujú ako "check buttons" — vždy je vybraná presne 1 */
-        .radio-group {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
+        /* ── SELECT: rozbaľovací zoznam pre výber prevodu ── */
+        .form-group select {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 1em;
+            cursor: pointer;
+            transition: border-color 0.3s;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%2300d4ff' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 16px center;
+            padding-right: 40px;
         }
-
-        .radio-option {
-            flex: 1;
-            min-width: 120px;
+        .form-group select:focus {
+            outline: none;
+            border-color: #00d4ff;
+            box-shadow: 0 0 15px rgba(0,212,255,0.2);
         }
-
-        .radio-option input[type="radio"] {
-            display: none; /* Skryjeme štandardný radio button */
-        }
-
-        /* Keď je radio button vybraný, zvýrazníme jeho label */
+        .form-group select option { background: #1a1a2e; color: #e0e0e0; }
+        .radio-group { display: flex; gap: 10px; flex-wrap: wrap; }
+        .radio-option { flex: 1; min-width: 120px; }
+        .radio-option input[type="radio"] { display: none; }
         .radio-option input[type="radio"]:checked + label {
-            background: rgba(0, 212, 255, 0.25);
+            background: rgba(0,212,255,0.25);
             border-color: #00d4ff;
             color: #00d4ff;
         }
-
         .radio-option label {
             display: block;
             text-align: center;
             padding: 12px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.15);
             border-radius: 8px;
             cursor: pointer;
             transition: all 0.3s;
             font-size: 1em;
         }
-
-        .radio-option label:hover {
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        /* --- Submit Button (odoslanie) --- */
+        .radio-option label:hover { background: rgba(255,255,255,0.1); }
         .submit-btn {
             width: 100%;
             padding: 14px;
@@ -180,38 +127,25 @@ Komunikácia: GET request → parametre viditeľné v URL riadku prehliadača
             cursor: pointer;
             transition: transform 0.2s, box-shadow 0.2s;
         }
-
         .submit-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0, 212, 255, 0.4);
+            box-shadow: 0 6px 20px rgba(0,212,255,0.4);
         }
-
-        /* ---------- VÝSLEDOK ---------- */
         .result-box {
-            display: none; /* Skrytý, kým nie je výsledok */
-            background: rgba(0, 212, 255, 0.1);
-            border: 1px solid rgba(0, 212, 255, 0.3);
+            display: none;
+            background: rgba(0,212,255,0.1);
+            border: 1px solid rgba(0,212,255,0.3);
             border-radius: 12px;
             padding: 20px;
             text-align: center;
             margin-top: 20px;
         }
-
-        .result-box.visible {
-            display: block;
-            animation: fadeIn 0.5s ease;
-        }
-
-        .result-number {
-            font-size: 2.5em;
-            font-weight: 700;
-            color: #00d4ff;
-        }
-
-        /* ---------- URL UKÁŽKA ---------- */
+        .result-box.visible { display: block; animation: fadeIn 0.5s ease; }
+        .result-number { font-size: 2.5em; font-weight: 700; color: #00d4ff; }
+        .result-popis { color: #8892b0; margin-top: 8px; font-size: 0.95em; }
         .url-preview {
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.1);
             border-radius: 8px;
             padding: 12px 16px;
             font-family: 'Courier New', monospace;
@@ -220,426 +154,344 @@ Komunikácia: GET request → parametre viditeľné v URL riadku prehliadača
             word-break: break-all;
             margin-top: 15px;
         }
-
-        .url-preview .highlight {
-            color: #00d4ff;
-        }
-
-        /* ---------- TABUĽKA HISTÓRIE ---------- */
-        .history-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-        }
-
+        .url-preview .highlight { color: #00d4ff; }
+        .history-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         .history-table th {
-            background: rgba(0, 212, 255, 0.15);
+            background: rgba(0,212,255,0.15);
             color: #00d4ff;
             padding: 10px;
             text-align: left;
             font-size: 0.85em;
             text-transform: uppercase;
         }
-
-        .history-table td {
-            padding: 10px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            font-size: 0.9em;
-        }
-
-        .history-table tr:hover td {
-            background: rgba(255, 255, 255, 0.03);
-        }
-
-        /* ---------- LOADING SPINNER ---------- */
+        .history-table td { padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.9em; }
+        .history-table tr:hover td { background: rgba(255,255,255,0.03); }
         .spinner {
             display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 2px solid rgba(0, 212, 255, 0.3);
+            width: 20px; height: 20px;
+            border: 2px solid rgba(0,212,255,0.3);
             border-top-color: #00d4ff;
             border-radius: 50%;
             animation: spin 0.8s linear infinite;
         }
-
-        /* ---------- ANIMÁCIE ---------- */
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        /* ---------- CHYBOVÁ SPRÁVA ---------- */
         .error-msg {
             color: #ff6b6b;
-            background: rgba(255, 107, 107, 0.1);
-            border: 1px solid rgba(255, 107, 107, 0.3);
+            background: rgba(255,107,107,0.1);
+            border: 1px solid rgba(255,107,107,0.3);
             border-radius: 8px;
             padding: 12px;
             margin-top: 15px;
             display: none;
         }
-
-        /* ---------- INFORMAČNÝ PANEL ---------- */
         .info-panel {
-            background: rgba(255, 193, 7, 0.08);
-            border: 1px solid rgba(255, 193, 7, 0.25);
+            background: rgba(255,193,7,0.08);
+            border: 1px solid rgba(255,193,7,0.25);
             border-radius: 12px;
             padding: 20px;
             margin-bottom: 24px;
         }
-
-        .info-panel h3 {
-            color: #ffc107;
-            margin-bottom: 10px;
-        }
-
-        .info-panel code {
-            background: rgba(0, 0, 0, 0.3);
+        .info-panel h3 { color: #ffc107; margin-bottom: 10px; }
+        code {
+            background: rgba(0,0,0,0.3);
             padding: 2px 8px;
             border-radius: 4px;
             font-family: 'Courier New', monospace;
             color: #00d4ff;
             font-size: 0.9em;
         }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
-    <div class="container">
+<div class="container">
 
-        <!-- ═══════════════════════════════════════════════════
-             HLAVIČKA
-             ═══════════════════════════════════════════════════ -->
-        <div class="header">
-            <h1>🛠️ IoT Admin Panel</h1>
-            <p>Frontend A — Administračné rozhranie</p>
-            <div style="margin-top: 12px;">
-                <span class="badge">Flask Backend</span>
-                <span class="badge">GET Request</span>
-                <span class="badge">SQLite DB</span>
-                <span class="badge">Azure Cloud</span>
-            </div>
+    <div class="header">
+        <h1>🛠️ IoT Admin Panel</h1>
+        <p>Frontend A — Administračné rozhranie</p>
+        <div style="margin-top:12px">
+            <span class="badge">Flask Backend</span>
+            <span class="badge">GET Request</span>
+            <span class="badge">SQLite DB</span>
+            <span class="badge">JSON súbor</span>
+            <span class="badge">Azure Cloud</span>
         </div>
-
-        <!-- ═══════════════════════════════════════════════════
-             INFORMAČNÝ PANEL PRE ŠTUDENTOV
-             ═══════════════════════════════════════════════════ -->
-        <div class="info-panel">
-            <h3>📖 Ako to funguje?</h3>
-            <p>
-                Tento formulár odosiela dáta na backend pomocou <code>GET</code> requestu.
-                Parametre sú viditeľné v URL, napr.:
-                <code>/vypocet?cislo1=10&cislo2=5&operacia=plus</code>
-            </p>
-        </div>
-
-        <!-- ═══════════════════════════════════════════════════
-             KALKULAČKA (FORMULÁR)
-             ═══════════════════════════════════════════════════
-             HTML prvky podľa zadania:
-               - <input type="number"> = Text Input
-               - <input type="radio">  = Check Button
-               - <button type="submit"> = Submit Button
-             ═══════════════════════════════════════════════════ -->
-        <div class="card">
-            <h2>🧮 Kalkulačka</h2>
-
-            <!--
-                POZOR: method="GET" znamená, že dáta sa odošlú ako URL parametre.
-                Formulár sa neosiela priamo — používame JavaScript (fetch API)
-                pre lepší UX, ale princíp GET requestu zostáva.
-            -->
-            <form id="kalkulackaForm" onsubmit="return odosliFormular(event)">
-
-                <!-- TEXT INPUT 1: Prvé číslo -->
-                <div class="form-group">
-                    <label for="cislo1">Prvé číslo:</label>
-                    <input type="number" id="cislo1" name="cislo1"
-                           placeholder="Zadajte prvé číslo (napr. 42)"
-                           step="any" required>
-                </div>
-
-                <!-- TEXT INPUT 2: Druhé číslo -->
-                <div class="form-group">
-                    <label for="cislo2">Druhé číslo:</label>
-                    <input type="number" id="cislo2" name="cislo2"
-                           placeholder="Zadajte druhé číslo (napr. 7)"
-                           step="any" required>
-                </div>
-
-                <!-- CHECK BUTTONS: Výber operácie -->
-                <!-- 
-                    Radio buttons = keď chceme, aby bola vybraná PRESNE JEDNA možnosť.
-                    Všetky majú rovnaký name="operacia" → tvoria skupinu.
-                    value="plus" → táto hodnota sa odošle na server.
-                -->
-                <div class="form-group">
-                    <label>Operácia:</label>
-                    <div class="radio-group">
-                        <div class="radio-option">
-                            <input type="radio" id="op_plus" name="operacia"
-                                   value="plus" checked>
-                            <label for="op_plus">➕ Sčítanie</label>
-                        </div>
-                        <div class="radio-option">
-                            <input type="radio" id="op_minus" name="operacia"
-                                   value="minus">
-                            <label for="op_minus">➖ Odčítanie</label>
-                        </div>
-                        <div class="radio-option">
-                            <input type="radio" id="op_krat" name="operacia"
-                                   value="krat">
-                            <label for="op_krat">✖️ Násobenie</label>
-                        </div>
-                        <div class="radio-option">
-                            <input type="radio" id="op_deleno" name="operacia"
-                                   value="deleno">
-                            <label for="op_deleno">➗ Delenie</label>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- SUBMIT BUTTON: Odoslanie -->
-                <button type="submit" class="submit-btn" id="submitBtn">
-                    📤 Vypočítať a odoslať
-                </button>
-            </form>
-
-            <!-- Výsledok výpočtu (skrytý, kým nepríde odpoveď) -->
-            <div class="result-box" id="vysledokBox">
-                <p style="color: #8892b0; margin-bottom: 5px;">Výsledok:</p>
-                <div class="result-number" id="vysledokCislo">—</div>
-                <p style="color: #8892b0; margin-top: 5px; font-size: 0.85em;" id="vysledokDetail"></p>
-            </div>
-
-            <!-- Ukážka URL (čo sa odošle) -->
-            <div class="url-preview" id="urlPreview">
-                <strong>URL Request:</strong><br>
-                <span id="urlText">/vypocet?cislo1=_&cislo2=_&operacia=plus</span>
-            </div>
-
-            <!-- Chybová správa -->
-            <div class="error-msg" id="chybaMsg"></div>
-        </div>
-
-        <!-- ═══════════════════════════════════════════════════
-             HISTÓRIA VÝPOČTOV
-             ═══════════════════════════════════════════════════ -->
-        <div class="card">
-            <h2>📊 História výpočtov</h2>
-            <p style="color: #8892b0; margin-bottom: 15px; font-size: 0.9em;">
-                Dáta sa načítavajú z API endpointu <code style="background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; color: #00d4ff;">/api/historia</code>
-            </p>
-            <div id="historiaObsah">
-                <p style="color: #8892b0;">Načítavam...</p>
-            </div>
-        </div>
-
     </div>
 
-    <!-- ═══════════════════════════════════════════════════════════════════
-         JAVASCRIPT
-         ═══════════════════════════════════════════════════════════════════
-         Tu je logika, ktorá:
-         1. Odošle formulár cez fetch() ako GET request
-         2. Spracuje odpoveď z backendu (JSON)
-         3. Zobrazí výsledok a aktualizuje históriu
-         ═══════════════════════════════════════════════════════════════════ -->
-    <script>
-        // ──────────────────────────────────────────────────────────────
-        // KONFIGURÁCIA
-        // ──────────────────────────────────────────────────────────────
-        // BACKEND_URL = adresa tvojho Flask servera
-        // Lokálne: http://localhost:5000
-        // Na Azure: http://tvoj-backend.azurewebsites.net
-        //
-        // 💡 Pri nasadení na Azure zmeň túto premennú!
+    <div class="info-panel">
+        <h3>📖 Ako to funguje?</h3>
+        <p>
+            Kalkulačka ukladá výsledky do <code>SQLite databázy</code>.
+            Prevodník jednotiek ukladá výsledky do súboru <code>prevody.json</code>
+            cez endpoint <code>/api/prevod</code>.
+        </p>
+    </div>
 
-        const BACKEND_URL = window.location.origin;
-        // ↑ Automaticky použije aktuálnu doménu (funguje lokálne aj na Azure)
+    <!-- ═══════════════════════════════════════
+         SEKCIA 1: KALKULAČKA (pôvodná)
+         ═══════════════════════════════════════ -->
+    <div class="card">
+        <h2>🧮 Kalkulačka</h2>
+        <form id="kalkulackaForm" onsubmit="return odosliKalkulacku(event)">
+            <div class="form-group">
+                <label for="cislo1">Prvé číslo:</label>
+                <input type="number" id="cislo1" placeholder="Zadajte prvé číslo" step="any" required>
+            </div>
+            <div class="form-group">
+                <label for="cislo2">Druhé číslo:</label>
+                <input type="number" id="cislo2" placeholder="Zadajte druhé číslo" step="any" required>
+            </div>
+            <div class="form-group">
+                <label>Operácia:</label>
+                <div class="radio-group">
+                    <div class="radio-option">
+                        <input type="radio" id="op_plus" name="operacia" value="plus" checked>
+                        <label for="op_plus">➕ Sčítanie</label>
+                    </div>
+                    <div class="radio-option">
+                        <input type="radio" id="op_minus" name="operacia" value="minus">
+                        <label for="op_minus">➖ Odčítanie</label>
+                    </div>
+                    <div class="radio-option">
+                        <input type="radio" id="op_krat" name="operacia" value="krat">
+                        <label for="op_krat">✖️ Násobenie</label>
+                    </div>
+                    <div class="radio-option">
+                        <input type="radio" id="op_deleno" name="operacia" value="deleno">
+                        <label for="op_deleno">➗ Delenie</label>
+                    </div>
+                </div>
+            </div>
+            <button type="submit" class="submit-btn" id="submitBtnKalk">📤 Vypočítať a odoslať</button>
+        </form>
+        <div class="result-box" id="vysledokBoxKalk">
+            <p style="color:#8892b0;margin-bottom:5px">Výsledok:</p>
+            <div class="result-number" id="vysledokCislo">—</div>
+            <p style="color:#8892b0;margin-top:5px;font-size:0.85em" id="vysledokDetail"></p>
+        </div>
+        <div class="url-preview">
+            <strong>URL Request:</strong><br>
+            <span id="urlText">/vypocet?cislo1=_&cislo2=_&operacia=plus</span>
+        </div>
+        <div class="error-msg" id="chybaMsgKalk"></div>
+    </div>
 
-        // ──────────────────────────────────────────────────────────────
-        // AKTUALIZÁCIA URL UKÁŽKY
-        // ──────────────────────────────────────────────────────────────
-        // Pri každej zmene vo formulári aktualizujeme ukážku URL,
-        // aby študenti videli, ako sa GET parametre tvoria.
+    <!-- ═══════════════════════════════════════
+         SEKCIA 2: PREVODNÍK JEDNOTIEK (NOVÉ)
+         ═══════════════════════════════════════
+         Prvky podľa zadania:
+           ✅ input type="number"
+           ✅ select s 3 typmi prevodu
+           ✅ button type="submit"
+         ═══════════════════════════════════════ -->
+    <div class="card">
+        <h2>🌡️ Prevodník IoT jednotiek</h2>
+        <p style="color:#8892b0;margin-bottom:20px;font-size:0.9em">
+            Prevod fyzikálnych veličín. Každý prevod sa uloží do <code>prevody.json</code>.
+        </p>
 
-        function aktualizujUrlPreview() {
-            const cislo1 = document.getElementById("cislo1").value || "_";
-            const cislo2 = document.getElementById("cislo2").value || "_";
-            const operacia = document.querySelector('input[name="operacia"]:checked').value;
+        <form id="prevodnikForm" onsubmit="return odosliPrevod(event)">
 
-            const url = `/vypocet?cislo1=${cislo1}&cislo2=${cislo2}&operacia=${operacia}`;
-            document.getElementById("urlText").innerHTML =
-                `<span class="highlight">${BACKEND_URL}</span>${url}`;
-        }
+            <!-- INPUT TYPE NUMBER — zadanie hodnoty na prevod -->
+            <div class="form-group">
+                <label for="hodnotaPrevod">Hodnota na prevod:</label>
+                <input type="number"
+                       id="hodnotaPrevod"
+                       name="hodnota"
+                       placeholder="Zadajte číslo (napr. 25)"
+                       step="any"
+                       required>
+            </div>
 
-        // Pridáme event listenery na všetky vstupy
-        document.getElementById("cislo1").addEventListener("input", aktualizujUrlPreview);
-        document.getElementById("cislo2").addEventListener("input", aktualizujUrlPreview);
-        document.querySelectorAll('input[name="operacia"]').forEach(radio => {
-            radio.addEventListener("change", aktualizujUrlPreview);
-        });
+            <!-- SELECT — výber typu prevodu (°C→°F, hPa→mmHg, m/s→km/h) -->
+            <div class="form-group">
+                <label for="typPrevodu">Typ prevodu:</label>
+                <select id="typPrevodu" name="typ" required>
+                    <option value="c_to_f">🌡️ °C → °F &nbsp; (teplota)</option>
+                    <option value="hpa_to_mmhg">🌬️ hPa → mmHg &nbsp; (tlak)</option>
+                    <option value="ms_to_kmh">💨 m/s → km/h &nbsp; (rýchlosť vetra)</option>
+                </select>
+            </div>
 
-        // ──────────────────────────────────────────────────────────────
-        // ODOSLANIE FORMULÁRA
-        // ──────────────────────────────────────────────────────────────
-        // Namiesto klasického odoslania formulára (ktoré by obnovilo stránku)
-        // používame fetch() API — moderný spôsob komunikácie so serverom.
-        //
-        // fetch() = pošle HTTP request a vráti Promise s odpoveďou
-        // await   = počká na dokončenie asynchrónnej operácie
+            <!-- SUBMIT BUTTON — odoslanie formulára -->
+            <button type="submit" class="submit-btn" id="submitBtnPrevod">
+                🔄 Previesť a uložiť
+            </button>
+        </form>
 
-        async function odosliFormular(event) {
-            // Zabránime štandardnému odoslaniu formulára (page reload)
-            event.preventDefault();
+        <!-- Výsledok prevodu -->
+        <div class="result-box" id="vysledokBoxPrevod">
+            <p style="color:#8892b0;margin-bottom:5px">Výsledok prevodu:</p>
+            <div class="result-number" id="prevodVysledok">—</div>
+            <p class="result-popis" id="prevodPopis"></p>
+            <p style="color:#555;font-size:0.8em;margin-top:6px" id="prevodCas"></p>
+        </div>
 
-            // Skryjeme predchádzajúce chyby
-            document.getElementById("chybaMsg").style.display = "none";
+        <!-- URL ukážka -->
+        <div class="url-preview">
+            <strong>URL Request:</strong><br>
+            <span id="urlTextPrevod">/api/prevod?hodnota=_&typ=c_to_f</span>
+        </div>
 
-            // Prečítame hodnoty z formulára
-            const cislo1 = document.getElementById("cislo1").value;
-            const cislo2 = document.getElementById("cislo2").value;
-            const operacia = document.querySelector('input[name="operacia"]:checked').value;
+        <div class="error-msg" id="chybaMsgPrevod"></div>
+    </div>
 
-            // Validácia — skontrolujeme, či boli zadané čísla
-            if (!cislo1 || !cislo2) {
-                zobrazChybu("Prosím, vyplňte obe čísla!");
-                return false;
+    <!-- HISTÓRIA KALKULAČKY -->
+    <div class="card">
+        <h2>📊 História výpočtov (kalkulačka)</h2>
+        <p style="color:#8892b0;margin-bottom:15px;font-size:0.9em">
+            Dáta z endpointu <code>/api/historia</code> — SQLite databáza
+        </p>
+        <div id="historiaObsah"><p style="color:#8892b0">Načítavam...</p></div>
+    </div>
+
+</div>
+
+<script>
+    const BACKEND_URL = window.location.origin;
+
+    // ── URL preview pre kalkulačku ──
+    function aktualizujUrlPreview() {
+        const c1 = document.getElementById("cislo1").value || "_";
+        const c2 = document.getElementById("cislo2").value || "_";
+        const op = document.querySelector('input[name="operacia"]:checked').value;
+        document.getElementById("urlText").innerHTML =
+            `<span class="highlight">${BACKEND_URL}</span>/vypocet?cislo1=${c1}&cislo2=${c2}&operacia=${op}`;
+    }
+
+    // ── URL preview pre prevodník ──
+    function aktualizujUrlPreviewPrevod() {
+        const h = document.getElementById("hodnotaPrevod").value || "_";
+        const t = document.getElementById("typPrevodu").value;
+        document.getElementById("urlTextPrevod").innerHTML =
+            `<span class="highlight">${BACKEND_URL}</span>/api/prevod?hodnota=${h}&typ=${t}`;
+    }
+
+    document.getElementById("cislo1").addEventListener("input", aktualizujUrlPreview);
+    document.getElementById("cislo2").addEventListener("input", aktualizujUrlPreview);
+    document.querySelectorAll('input[name="operacia"]').forEach(r =>
+        r.addEventListener("change", aktualizujUrlPreview));
+    document.getElementById("hodnotaPrevod").addEventListener("input", aktualizujUrlPreviewPrevod);
+    document.getElementById("typPrevodu").addEventListener("change", aktualizujUrlPreviewPrevod);
+
+    // ── Odoslanie kalkulačky ──
+    async function odosliKalkulacku(event) {
+        event.preventDefault();
+        document.getElementById("chybaMsgKalk").style.display = "none";
+
+        const c1 = document.getElementById("cislo1").value;
+        const c2 = document.getElementById("cislo2").value;
+        const op = document.querySelector('input[name="operacia"]:checked').value;
+
+        const btn = document.getElementById("submitBtnKalk");
+        btn.innerHTML = '<span class="spinner"></span> Počítam...';
+        btn.disabled = true;
+
+        try {
+            const res = await fetch(`${BACKEND_URL}/vypocet?cislo1=${c1}&cislo2=${c2}&operacia=${op}`);
+            const data = await res.json();
+
+            if (data.chyba) {
+                zobrazChybu("chybaMsgKalk", data.chyba);
+            } else {
+                const sym = { plus:"+", minus:"−", krat:"×", deleno:"÷" }[data.operacia] || "?";
+                document.getElementById("vysledokCislo").textContent = data.vysledok;
+                document.getElementById("vysledokDetail").textContent =
+                    `${data.cislo1} ${sym} ${data.cislo2} = ${data.vysledok}  |  ID: ${data.id}  |  ${data.cas}`;
+                document.getElementById("vysledokBoxKalk").classList.add("visible");
+                nacitajHistoriu();
             }
+        } catch {
+            zobrazChybu("chybaMsgKalk", "Nepodarilo sa spojiť so serverom.");
+        } finally {
+            btn.innerHTML = "📤 Vypočítať a odoslať";
+            btn.disabled = false;
+        }
+        return false;
+    }
 
-            // Zmena textu tlačidla na loading stav
-            const btn = document.getElementById("submitBtn");
-            btn.innerHTML = '<span class="spinner"></span> Počítam...';
-            btn.disabled = true;
+    // ── Odoslanie prevodníka (NOVÁ FUNKCIA) ──
+    async function odosliPrevod(event) {
+        event.preventDefault();
+        document.getElementById("chybaMsgPrevod").style.display = "none";
 
-            try {
-                // ─── KĽÚČOVÝ MOMENT: GET REQUEST ───
-                // Vytvoríme URL s parametrami a odošleme GET request.
-                // Toto je PRESNE to isté, čo by urobil prehliadač,
-                // keby sme formulár odoslali klasicky s method="GET".
-                const url = `${BACKEND_URL}/vypocet?cislo1=${cislo1}&cislo2=${cislo2}&operacia=${operacia}`;
+        const hodnota = document.getElementById("hodnotaPrevod").value;
+        const typ = document.getElementById("typPrevodu").value;
 
-                console.log("📤 Odosielam GET request na:", url);
+        const btn = document.getElementById("submitBtnPrevod");
+        btn.innerHTML = '<span class="spinner"></span> Prevádzam...';
+        btn.disabled = true;
 
-                const response = await fetch(url);
-                const data = await response.json();
+        try {
+            // GET request na /api/prevod — parametre hodota a typ v URL
+            const url = `${BACKEND_URL}/api/prevod?hodnota=${hodnota}&typ=${typ}`;
+            console.log("📤 Odosielam prevod:", url);
 
-                console.log("📥 Odpoveď zo servera:", data);
+            const res = await fetch(url);
+            const data = await res.json();
 
-                if (data.chyba) {
-                    // Server vrátil chybu
-                    zobrazChybu(data.chyba);
-                } else {
-                    // Úspech! Zobrazíme výsledok
-                    zobrazVysledok(data);
-                    nacitajHistoriu(); // Obnovíme históriu
-                }
-            } catch (error) {
-                // Chyba siete (server neodpovedá)
-                console.error("❌ Chyba:", error);
-                zobrazChybu("Nepodarilo sa spojiť so serverom. Je backend spustený?");
-            } finally {
-                // Obnovíme tlačidlo
-                btn.innerHTML = "📤 Vypočítať a odoslať";
-                btn.disabled = false;
+            if (data.chyba) {
+                zobrazChybu("chybaMsgPrevod", data.chyba);
+            } else {
+                // Zobrazenie výsledku na stránke
+                document.getElementById("prevodVysledok").textContent = data.vysledok;
+                document.getElementById("prevodPopis").textContent = data.popis;
+                document.getElementById("prevodCas").textContent =
+                    `Uložené do prevody.json  |  ${data.cas}`;
+                document.getElementById("vysledokBoxPrevod").classList.add("visible");
             }
-
-            return false;
+        } catch {
+            zobrazChybu("chybaMsgPrevod", "Nepodarilo sa spojiť so serverom.");
+        } finally {
+            btn.innerHTML = "🔄 Previesť a uložiť";
+            btn.disabled = false;
         }
+        return false;
+    }
 
-        // ──────────────────────────────────────────────────────────────
-        // ZOBRAZENIE VÝSLEDKU
-        // ──────────────────────────────────────────────────────────────
+    function zobrazChybu(id, text) {
+        const el = document.getElementById(id);
+        el.textContent = "⚠️ " + text;
+        el.style.display = "block";
+    }
 
-        function zobrazVysledok(data) {
-            const box = document.getElementById("vysledokBox");
-            document.getElementById("vysledokCislo").textContent = data.vysledok;
+    // ── Načítanie histórie kalkulačky ──
+    async function nacitajHistoriu() {
+        try {
+            const res = await fetch(`${BACKEND_URL}/api/historia`);
+            const data = await res.json();
 
-            // Symbol operácie pre zobrazenie
-            const symboly = { plus: "+", minus: "−", krat: "×", deleno: "÷" };
-            const symbol = symboly[data.operacia] || "?";
-
-            document.getElementById("vysledokDetail").textContent =
-                `${data.cislo1} ${symbol} ${data.cislo2} = ${data.vysledok}  |  ID: ${data.id}  |  ${data.cas}`;
-
-            box.classList.add("visible");
-        }
-
-        // ──────────────────────────────────────────────────────────────
-        // ZOBRAZENIE CHYBY
-        // ──────────────────────────────────────────────────────────────
-
-        function zobrazChybu(text) {
-            const msg = document.getElementById("chybaMsg");
-            msg.textContent = "⚠️ " + text;
-            msg.style.display = "block";
-        }
-
-        // ──────────────────────────────────────────────────────────────
-        // NAČÍTANIE HISTÓRIE Z API
-        // ──────────────────────────────────────────────────────────────
-        // Voláme endpoint /api/historia, ktorý vráti JSON pole všetkých výpočtov.
-        // Toto je príklad toho, ako Frontend B komunikuje s backendom.
-
-        async function nacitajHistoriu() {
-            try {
-                const response = await fetch(`${BACKEND_URL}/api/historia`);
-                const data = await response.json();
-
-                if (data.length === 0) {
-                    document.getElementById("historiaObsah").innerHTML =
-                        '<p style="color: #8892b0;">Zatiaľ žiadne výpočty. Skúste kalkulačku vyššie!</p>';
-                    return;
-                }
-
-                // Symbol operácie
-                const symboly = { plus: "+", minus: "−", krat: "×", deleno: "÷" };
-
-                // Vytvoríme HTML tabuľku
-                let html = `
-                    <table class="history-table">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Výpočet</th>
-                                <th>Výsledok</th>
-                                <th>Čas</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                `;
-
-                data.forEach(item => {
-                    const sym = symboly[item.operacia] || "?";
-                    html += `
-                        <tr>
-                            <td>#${item.id}</td>
-                            <td>${item.cislo1} ${sym} ${item.cislo2}</td>
-                            <td style="color: #00d4ff; font-weight: 700;">${item.vysledok}</td>
-                            <td style="color: #8892b0; font-size: 0.8em;">${item.cas}</td>
-                        </tr>
-                    `;
-                });
-
-                html += '</tbody></table>';
-                document.getElementById("historiaObsah").innerHTML = html;
-
-            } catch (error) {
+            if (data.length === 0) {
                 document.getElementById("historiaObsah").innerHTML =
-                    '<p style="color: #ff6b6b;">❌ Nepodarilo sa načítať históriu.</p>';
+                    '<p style="color:#8892b0">Zatiaľ žiadne výpočty.</p>';
+                return;
             }
-        }
 
-        // ──────────────────────────────────────────────────────────────
-        // INICIALIZÁCIA
-        // ──────────────────────────────────────────────────────────────
-        // Pri načítaní stránky: aktualizujeme URL preview a načítame históriu
-        aktualizujUrlPreview();
-        nacitajHistoriu();
-    </script>
+            const sym = { plus:"+", minus:"−", krat:"×", deleno:"÷" };
+            let html = `<table class="history-table"><thead><tr>
+                <th>ID</th><th>Výpočet</th><th>Výsledok</th><th>Čas</th>
+            </tr></thead><tbody>`;
+
+            data.forEach(item => {
+                html += `<tr>
+                    <td>#${item.id}</td>
+                    <td>${item.cislo1} ${sym[item.operacia]||"?"} ${item.cislo2}</td>
+                    <td style="color:#00d4ff;font-weight:700">${item.vysledok}</td>
+                    <td style="color:#8892b0;font-size:0.8em">${item.cas}</td>
+                </tr>`;
+            });
+
+            html += '</tbody></table>';
+            document.getElementById("historiaObsah").innerHTML = html;
+        } catch {
+            document.getElementById("historiaObsah").innerHTML =
+                '<p style="color:#ff6b6b">❌ Nepodarilo sa načítať históriu.</p>';
+        }
+    }
+
+    aktualizujUrlPreview();
+    aktualizujUrlPreviewPrevod();
+    nacitajHistoriu();
+</script>
 </body>
 </html>
