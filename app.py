@@ -8,7 +8,7 @@ Tento súbor je SRDCE celého projektu. Je to server (backend), ktorý:
   3. Ukladá výsledky do SQLite databázy
   4. Poskytuje API endpointy pre Frontend B (IoT klient)
 
-Autor: [Tvoje meno]
+Autor: [Adrián Zbur]
 Predmet: Internet vecí
 =============================================================================
 """
