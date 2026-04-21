@@ -23,8 +23,9 @@ CORS(app)
 # ─────────────────────────────────────────────────────────────────────────────
 # DATABÁZA - SQLite (pôvodná kalkulačka)
 # ─────────────────────────────────────────────────────────────────────────────
-
-DATABASE = "databaza.db"
+# Odporúčanie pre Azure: databázu ukladať do /home (perzistentné úložisko).
+# Lokálne to tiež funguje.
+DATABASE = os.path.join("/home", "databaza.db")
 
 
 def inicializuj_databazu():
@@ -43,6 +44,12 @@ def inicializuj_databazu():
     conn.commit()
     conn.close()
     print("✅ Databáza inicializovaná.")
+
+
+# ✅ MOŽNOSŤ 1: Zavoláme init hneď po definícii funkcie
+# Tým pádom sa DB a tabuľka vytvorí aj vtedy, keď Azure spúšťa appku cez gunicorn import (app:app),
+# nie len keď ju spustíš lokálne cez `python app.py`.
+inicializuj_databazu()
 
 
 def uloz_do_databazy(cislo1, cislo2, operacia, vysledok):
@@ -72,10 +79,7 @@ def nacitaj_vsetky_vypocty():
 # ─────────────────────────────────────────────────────────────────────────────
 # JSON SÚBOR - Prevodník jednotiek (NOVÉ)
 # ─────────────────────────────────────────────────────────────────────────────
-# Na rozdiel od kalkulačky, prevody sa ukladajú do súboru prevody.json,
-# nie do databázy. Toto demonštruje alternatívny spôsob ukladania dát.
-
-SUBOR_PREVODOV = "prevody.json"
+SUBOR_PREVODOV = os.path.join("/home", "prevody.json")
 
 
 def nacitaj_prevody():
@@ -212,53 +216,26 @@ def iot_odosli():
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# NOVÉ ROUTES — Prevodník jednotiek (ZADANIE NA DOMA)
+# NOVÉ ROUTES — Prevodník jednotiek
 # ─────────────────────────────────────────────────────────────────────────────
 
 @app.route("/api/prevod")
 def prevod():
-    """
-    Endpoint na prevod jednotiek pre IoT senzory.
-
-    GET parametre:
-        hodnota (float): Číslo na prevod
-        typ (str):       Typ prevodu (c_to_f / hpa_to_mmhg / ms_to_kmh)
-
-    Príklady URL:
-        /api/prevod?hodnota=100&typ=c_to_f
-        /api/prevod?hodnota=1013&typ=hpa_to_mmhg
-        /api/prevod?hodnota=15&typ=ms_to_kmh
-
-    Výstup (JSON):
-        {"hodnota": 100, "typ": "c_to_f", "vysledok": 212.0,
-         "popis": "100 °C = 212.00 °F", "cas": "..."}
-    """
-    # ── Krok 1: Načítanie parametrov z URL ──
     hodnota = request.args.get("hodnota", type=float)
     typ = request.args.get("typ", "c_to_f")
 
-    # ── Krok 2: Validácia ──
     if hodnota is None:
         return jsonify({"chyba": "Zadajte hodnotu! (parameter: hodnota)"}), 400
 
-    # ── Krok 3: Výpočet podľa typu prevodu ──
-    # Každý IoT senzor meria inú fyzikálnu veličinu s inými jednotkami.
-
     if typ == "c_to_f":
-        # Teplota: Celziusy → Fahrenheit
-        # Vzorec: °F = (°C × 9/5) + 32
         vysledok = (hodnota * 9 / 5) + 32
         popis = f"{hodnota} °C = {vysledok:.2f} °F"
 
     elif typ == "hpa_to_mmhg":
-        # Atmosferický tlak: hektopascaly → milimetre ortuti
-        # Vzorec: 1 hPa = 0.75006 mmHg
         vysledok = hodnota * 0.75006
         popis = f"{hodnota} hPa = {vysledok:.2f} mmHg"
 
     elif typ == "ms_to_kmh":
-        # Rýchlosť vetra: metre za sekundu → kilometre za hodinu
-        # Vzorec: 1 m/s = 3.6 km/h
         vysledok = hodnota * 3.6
         popis = f"{hodnota} m/s = {vysledok:.2f} km/h"
 
@@ -266,7 +243,6 @@ def prevod():
         return jsonify({"chyba": f"Neznámy typ prevodu: {typ}. "
                                   f"Platné typy: c_to_f, hpa_to_mmhg, ms_to_kmh"}), 400
 
-    # ── Krok 4: Vytvorenie záznamu ──
     zaznam = {
         "hodnota": hodnota,
         "typ": typ,
@@ -275,38 +251,20 @@ def prevod():
         "cas": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     }
 
-    # ── Krok 5: Uloženie do JSON súboru ──
-    # Na rozdiel od kalkulačky, tu neukladáme do SQLite databázy,
-    # ale priamo do súboru prevody.json na disku servera.
     uloz_prevod(zaznam)
-
-    # ── Krok 6: Vrátenie výsledku ──
     return jsonify(zaznam)
 
 
 @app.route("/api/historia-prevodov")
 def historia_prevodov():
-    """
-    Načíta a vráti celú históriu prevodov zo súboru prevody.json.
-
-    Výstup (JSON):
-        [
-            {"hodnota": 100, "typ": "c_to_f", "vysledok": 212.0, ...},
-            {"hodnota": 1013, "typ": "hpa_to_mmhg", "vysledok": 759.81, ...},
-            ...
-        ]
-
-    Ak súbor prevody.json neexistuje, vráti prázdny zoznam [].
-    """
     return jsonify(nacitaj_prevody())
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# ŠTART SERVERA
+# ŠTART SERVERA (len pre lokálne spúšťanie)
 # ─────────────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    inicializuj_databazu()
     print("=" * 60)
     print("🚀 IoT Backend Server beží!")
     print("=" * 60)
@@ -320,4 +278,6 @@ if __name__ == "__main__":
     print("   API Prevod (m/s→km/h):    http://localhost:5000/api/prevod?hodnota=15&typ=ms_to_kmh")
     print("   API História prevodov:    http://localhost:5000/api/historia-prevodov")
     print("=" * 60)
+
+    # Lokálne môžeš nechať 5000. Azure v produkcii to aj tak spúšťa cez gunicorn.
     app.run(host="0.0.0.0", port=5000, debug=True)
