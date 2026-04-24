@@ -21,14 +21,23 @@ app = Flask(__name__)
 CORS(app)
 
 # ─────────────────────────────────────────────────────────────────────────────
-# DATABÁZA - SQLite (pôvodná kalkulačka)
+# ÚLOŽISKO (Azure-friendly)
 # ─────────────────────────────────────────────────────────────────────────────
-# Odporúčanie pre Azure: databázu ukladať do /home (perzistentné úložisko).
-# Lokálne to tiež funguje.
-DATABASE = os.path.join("/home", "databaza.db")
+# Na Azure App Service (Linux) je najistejšie ukladať zapisovateľné súbory do:
+# - $HOME  (typicky /home)  -> perzistentné
+# - fallback /tmp           -> vždy zapisovateľné (ale neperzistentné)
+DATA_DIR = os.environ.get("HOME", "/tmp")
+
+DATABASE = os.path.join(DATA_DIR, "databaza.db")
+SUBOR_PREVODOV = os.path.join(DATA_DIR, "prevody.json")
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# DATABÁZA - SQLite (kalkulačka)
+# ─────────────────────────────────────────────────────────────────────────────
 def inicializuj_databazu():
+    os.makedirs(DATA_DIR, exist_ok=True)
+
     conn = sqlite3.connect(DATABASE)
     cursor = conn.cursor()
     cursor.execute("""
@@ -43,12 +52,10 @@ def inicializuj_databazu():
     """)
     conn.commit()
     conn.close()
-    print("✅ Databáza inicializovaná.")
+    print(f"✅ Databáza inicializovaná: {DATABASE}")
 
 
-# ✅ MOŽNOSŤ 1: Zavoláme init hneď po definícii funkcie
-# Tým pádom sa DB a tabuľka vytvorí aj vtedy, keď Azure spúšťa appku cez gunicorn import (app:app),
-# nie len keď ju spustíš lokálne cez `python app.py`.
+# ✅ Dôležité pre Azure: spustí sa aj pri importe cez gunicorn (app:app)
 inicializuj_databazu()
 
 
@@ -77,16 +84,9 @@ def nacitaj_vsetky_vypocty():
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# JSON SÚBOR - Prevodník jednotiek (NOVÉ)
+# JSON SÚBOR - Prevodník jednotiek
 # ─────────────────────────────────────────────────────────────────────────────
-SUBOR_PREVODOV = os.path.join("/home", "prevody.json")
-
-
 def nacitaj_prevody():
-    """
-    Načíta zoznam prevodov zo súboru prevody.json.
-    Ak súbor neexistuje, vráti prázdny zoznam.
-    """
     if not os.path.exists(SUBOR_PREVODOV):
         return []
     with open(SUBOR_PREVODOV, "r", encoding="utf-8") as f:
@@ -94,13 +94,8 @@ def nacitaj_prevody():
 
 
 def uloz_prevod(zaznam):
-    """
-    Pridá nový záznam prevodu do súboru prevody.json.
-    Ak súbor neexistuje, vytvorí ho.
+    os.makedirs(DATA_DIR, exist_ok=True)
 
-    Parametre:
-        zaznam (dict): Slovník s údajmi o prevode
-    """
     prevody = nacitaj_prevody()
     prevody.append(zaznam)
     with open(SUBOR_PREVODOV, "w", encoding="utf-8") as f:
@@ -108,9 +103,8 @@ def uloz_prevod(zaznam):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# PÔVODNÉ ROUTES (kalkulačka)
+# ROUTES
 # ─────────────────────────────────────────────────────────────────────────────
-
 @app.route("/")
 def hlavna_stranka():
     return render_template("frontend_a.html")
@@ -155,8 +149,7 @@ def vypocet():
 
 @app.route("/api/historia")
 def historia():
-    vypocty = nacitaj_vsetky_vypocty()
-    return jsonify(vypocty)
+    return jsonify(nacitaj_vsetky_vypocty())
 
 
 @app.route("/api/posledny")
@@ -164,8 +157,7 @@ def posledny_vypocet():
     vypocty = nacitaj_vsetky_vypocty()
     if vypocty:
         return jsonify(vypocty[0])
-    else:
-        return jsonify({"info": "Zatiaľ neboli vykonané žiadne výpočty."}), 404
+    return jsonify({"info": "Zatiaľ neboli vykonané žiadne výpočty."}), 404
 
 
 @app.route("/api/statistiky")
@@ -215,10 +207,6 @@ def iot_odosli():
     })
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# NOVÉ ROUTES — Prevodník jednotiek
-# ─────────────────────────────────────────────────────────────────────────────
-
 @app.route("/api/prevod")
 def prevod():
     hodnota = request.args.get("hodnota", type=float)
@@ -230,18 +218,16 @@ def prevod():
     if typ == "c_to_f":
         vysledok = (hodnota * 9 / 5) + 32
         popis = f"{hodnota} °C = {vysledok:.2f} °F"
-
     elif typ == "hpa_to_mmhg":
         vysledok = hodnota * 0.75006
         popis = f"{hodnota} hPa = {vysledok:.2f} mmHg"
-
     elif typ == "ms_to_kmh":
         vysledok = hodnota * 3.6
         popis = f"{hodnota} m/s = {vysledok:.2f} km/h"
-
     else:
-        return jsonify({"chyba": f"Neznámy typ prevodu: {typ}. "
-                                  f"Platné typy: c_to_f, hpa_to_mmhg, ms_to_kmh"}), 400
+        return jsonify({
+            "chyba": f"Neznámy typ prevodu: {typ}. Platné typy: c_to_f, hpa_to_mmhg, ms_to_kmh"
+        }), 400
 
     zaznam = {
         "hodnota": hodnota,
@@ -261,9 +247,8 @@ def historia_prevodov():
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# ŠTART SERVERA (len pre lokálne spúšťanie)
+# Lokálne spúšťanie
 # ─────────────────────────────────────────────────────────────────────────────
-
 if __name__ == "__main__":
     print("=" * 60)
     print("🚀 IoT Backend Server beží!")
@@ -272,12 +257,10 @@ if __name__ == "__main__":
     print("   Frontend B (Klient):      http://localhost:5000/klient")
     print("   API História:             http://localhost:5000/api/historia")
     print("   API Štatistiky:           http://localhost:5000/api/statistiky")
+    print("   IoT Odosli:               http://localhost:5000/iot/odosli?teplota=22&vlhkost=60")
     print("   --- PREVODNÍK ---")
     print("   API Prevod (°C→°F):       http://localhost:5000/api/prevod?hodnota=100&typ=c_to_f")
-    print("   API Prevod (hPa→mmHg):    http://localhost:5000/api/prevod?hodnota=1013&typ=hpa_to_mmhg")
-    print("   API Prevod (m/s→km/h):    http://localhost:5000/api/prevod?hodnota=15&typ=ms_to_kmh")
     print("   API História prevodov:    http://localhost:5000/api/historia-prevodov")
     print("=" * 60)
 
-    # Lokálne môžeš nechať 5000. Azure v produkcii to aj tak spúšťa cez gunicorn.
     app.run(host="0.0.0.0", port=5000, debug=True)
