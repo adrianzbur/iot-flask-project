@@ -16,333 +16,289 @@ NOVÉ prvky podľa zadania:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🛠️ Frontend A — IoT Administrácia</title>
+    <title>IoT Admin Panel</title>
     <style>
+        /* Apple-like Typography and Base */
+        :root {
+            --bg-color: #000000;
+            --card-bg: rgba(28, 28, 30, 0.6);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --text-primary: #f5f5f7;
+            --text-secondary: #86868b;
+            --accent: #0A84FF;
+            --accent-hover: #0070E5;
+            --danger: #FF453A;
+            --success: #32D74B;
+        }
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
             min-height: 100vh;
-            color: #e0e0e0;
-            padding: 20px;
+            padding: 40px 20px;
+            -webkit-font-smoothing: antialiased;
         }
-        .container { max-width: 800px; margin: 0 auto; }
-        .header { text-align: center; padding: 30px 0; }
-        .header h1 { font-size: 2em; color: #00d4ff; margin-bottom: 10px; }
-        .header p { color: #8892b0; font-size: 0.95em; }
-        .badge {
-            display: inline-block;
-            background: rgba(0,212,255,0.15);
-            color: #00d4ff;
-            padding: 4px 12px;
+
+        .container { max-width: 800px; margin: 0 auto; position: relative; }
+
+        /* Navigation Bar */
+        .top-nav {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 20px;
+        }
+
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
+            text-decoration: none;
+            padding: 8px 16px;
             border-radius: 20px;
-            font-size: 0.8em;
-            margin: 4px;
-            border: 1px solid rgba(0,212,255,0.3);
+            font-size: 0.9em;
+            font-weight: 500;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            transition: background 0.2s;
         }
+
+        .nav-btn:hover { background: rgba(255, 255, 255, 0.2); }
+
+        .header { text-align: center; padding: 20px 0 40px; }
+        .header h1 { font-size: 2.5em; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 8px; }
+        .header p { color: var(--text-secondary); font-size: 1.1em; }
+
+        /* Glassmorphism Cards */
         .card {
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 16px;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
             padding: 30px;
             margin-bottom: 24px;
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
-        .card h2 { color: #00d4ff; margin-bottom: 20px; font-size: 1.3em; }
+
+        .card h2 { font-size: 1.4em; font-weight: 600; margin-bottom: 24px; letter-spacing: -0.01em; }
+
         .form-group { margin-bottom: 20px; }
         .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            color: #b0b0b0;
-            font-size: 0.9em;
-            font-weight: 600;
+            display: block; margin-bottom: 8px; color: var(--text-secondary);
+            font-size: 0.9em; font-weight: 500;
         }
-        .form-group input[type="number"] {
+
+        /* Apple-style Inputs */
+        input[type="number"], select {
             width: 100%;
-            padding: 12px 16px;
-            background: rgba(255,255,255,0.08);
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 8px;
-            color: #fff;
-            font-size: 1.1em;
-            transition: border-color 0.3s;
-        }
-        .form-group input:focus {
-            outline: none;
-            border-color: #00d4ff;
-            box-shadow: 0 0 15px rgba(0,212,255,0.2);
-        }
-        /* ── SELECT: rozbaľovací zoznam pre výber prevodu ── */
-        .form-group select {
-            width: 100%;
-            padding: 12px 16px;
-            background: rgba(255,255,255,0.08);
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 8px;
-            color: #fff;
+            padding: 14px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: var(--text-primary);
             font-size: 1em;
-            cursor: pointer;
-            transition: border-color 0.3s;
+            font-family: inherit;
+            transition: all 0.2s ease;
             appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%2300d4ff' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+        }
+
+        input[type="number"]:focus, select:focus {
+            outline: none;
+            border-color: var(--accent);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 0 4px rgba(10, 132, 255, 0.2);
+        }
+
+        select {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%2386868b' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
             background-repeat: no-repeat;
             background-position: right 16px center;
-            padding-right: 40px;
         }
-        .form-group select:focus {
-            outline: none;
-            border-color: #00d4ff;
-            box-shadow: 0 0 15px rgba(0,212,255,0.2);
+
+        /* Apple Segmented Control for Radios */
+        .segmented-control {
+            display: flex;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            padding: 4px;
         }
-        .form-group select option { background: #1a1a2e; color: #e0e0e0; }
-        .radio-group { display: flex; gap: 10px; flex-wrap: wrap; }
-        .radio-option { flex: 1; min-width: 120px; }
+
+        .radio-option { flex: 1; text-align: center; }
         .radio-option input[type="radio"] { display: none; }
-        .radio-option input[type="radio"]:checked + label {
-            background: rgba(0,212,255,0.25);
-            border-color: #00d4ff;
-            color: #00d4ff;
-        }
         .radio-option label {
             display: block;
-            text-align: center;
-            padding: 12px;
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.15);
+            padding: 10px;
             border-radius: 8px;
             cursor: pointer;
-            transition: all 0.3s;
-            font-size: 1em;
+            font-size: 0.9em;
+            font-weight: 500;
+            color: var(--text-secondary);
+            transition: all 0.2s;
         }
-        .radio-option label:hover { background: rgba(255,255,255,0.1); }
+        .radio-option input[type="radio"]:checked + label {
+            background: rgba(255, 255, 255, 0.15);
+            color: var(--text-primary);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        /* Buttons */
         .submit-btn {
             width: 100%;
-            padding: 14px;
-            background: linear-gradient(135deg, #00d4ff, #0099cc);
-            color: #000;
+            padding: 16px;
+            background: var(--accent);
+            color: #fff;
             border: none;
-            border-radius: 8px;
-            font-size: 1.1em;
-            font-weight: 700;
+            border-radius: 14px;
+            font-size: 1.05em;
+            font-weight: 600;
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: background 0.2s, transform 0.1s;
         }
-        .submit-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0,212,255,0.4);
-        }
+        .submit-btn:hover { background: var(--accent-hover); }
+        .submit-btn:active { transform: scale(0.98); }
+
+        /* Results */
         .result-box {
             display: none;
-            background: rgba(0,212,255,0.1);
-            border: 1px solid rgba(0,212,255,0.3);
-            border-radius: 12px;
-            padding: 20px;
+            background: rgba(10, 132, 255, 0.1);
+            border-radius: 16px;
+            padding: 24px;
             text-align: center;
-            margin-top: 20px;
+            margin-top: 24px;
         }
-        .result-box.visible { display: block; animation: fadeIn 0.5s ease; }
-        .result-number { font-size: 2.5em; font-weight: 700; color: #00d4ff; }
-        .result-popis { color: #8892b0; margin-top: 8px; font-size: 0.95em; }
+        .result-box.visible { display: block; animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+        .result-number { font-size: 3em; font-weight: 700; letter-spacing: -0.03em; color: var(--accent); }
+        .result-popis { color: var(--text-secondary); margin-top: 8px; font-size: 0.95em; }
+
         .url-preview {
-            background: rgba(0,0,0,0.3);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 8px;
+            background: rgba(0,0,0,0.4);
+            border-radius: 10px;
             padding: 12px 16px;
-            font-family: 'Courier New', monospace;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
             font-size: 0.85em;
-            color: #8892b0;
+            color: var(--text-secondary);
+            margin-top: 20px;
             word-break: break-all;
-            margin-top: 15px;
         }
-        .url-preview .highlight { color: #00d4ff; }
-        .history-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        .history-table th {
-            background: rgba(0,212,255,0.15);
-            color: #00d4ff;
-            padding: 10px;
-            text-align: left;
-            font-size: 0.85em;
-            text-transform: uppercase;
-        }
-        .history-table td { padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.9em; }
-        .history-table tr:hover td { background: rgba(255,255,255,0.03); }
-        .spinner {
-            display: inline-block;
-            width: 20px; height: 20px;
-            border: 2px solid rgba(0,212,255,0.3);
-            border-top-color: #00d4ff;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
+        .url-preview .highlight { color: var(--accent); }
+
+        /* Table */
+        .history-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .history-table th { color: var(--text-secondary); padding: 12px; text-align: left; font-size: 0.85em; font-weight: 500; border-bottom: 1px solid var(--card-border); }
+        .history-table td { padding: 14px 12px; border-bottom: 1px solid rgba(255,255,255,0.03); font-size: 0.95em; }
+        .history-table tr:last-child td { border-bottom: none; }
+
         .error-msg {
-            color: #ff6b6b;
-            background: rgba(255,107,107,0.1);
-            border: 1px solid rgba(255,107,107,0.3);
-            border-radius: 8px;
-            padding: 12px;
-            margin-top: 15px;
-            display: none;
-        }
-        .info-panel {
-            background: rgba(255,193,7,0.08);
-            border: 1px solid rgba(255,193,7,0.25);
+            color: var(--danger);
+            background: rgba(255, 69, 58, 0.1);
             border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 24px;
-        }
-        .info-panel h3 { color: #ffc107; margin-bottom: 10px; }
-        code {
-            background: rgba(0,0,0,0.3);
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-family: 'Courier New', monospace;
-            color: #00d4ff;
+            padding: 14px;
+            margin-top: 20px;
+            display: none;
             font-size: 0.9em;
         }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes spin { to { transform: rotate(360deg); } }
+
+        code {
+            background: rgba(255,255,255,0.1);
+            padding: 2px 6px;
+            border-radius: 6px;
+            font-family: ui-monospace, SFMono-Regular, monospace;
+            font-size: 0.9em;
+        }
+
+        @keyframes scaleIn { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: scale(1); } }
     </style>
 </head>
 <body>
 <div class="container">
+    
+    <div class="top-nav">
+        <a href="/klient" class="nav-btn">Pohľad Klienta ➔</a>
+    </div>
 
     <div class="header">
-        <h1>🛠️ IoT Admin Panel</h1>
-        <p>Frontend A — Administračné rozhranie</p>
-        <div style="margin-top:12px">
-            <span class="badge">Flask Backend</span>
-            <span class="badge">GET Request</span>
-            <span class="badge">SQLite DB</span>
-            <span class="badge">JSON súbor</span>
-            <span class="badge">Azure Cloud</span>
-        </div>
+        <h1>Administrácia</h1>
+        <p>IoT Backend Server</p>
     </div>
 
-    <div class="info-panel">
-        <h3>📖 Ako to funguje?</h3>
-        <p>
-            Kalkulačka ukladá výsledky do <code>SQLite databázy</code>.
-            Prevodník jednotiek ukladá výsledky do súboru <code>prevody.json</code>
-            cez endpoint <code>/api/prevod</code>.
-        </p>
-    </div>
-
-    <!-- ═══════════════════════════════════════
-         SEKCIA 1: KALKULAČKA (pôvodná)
-         ═══════════════════════════════════════ -->
     <div class="card">
-        <h2>🧮 Kalkulačka</h2>
+        <h2>Kalkulačka</h2>
         <form id="kalkulackaForm" onsubmit="return odosliKalkulacku(event)">
             <div class="form-group">
-                <label for="cislo1">Prvé číslo:</label>
-                <input type="number" id="cislo1" placeholder="Zadajte prvé číslo" step="any" required>
+                <label>Prvé číslo</label>
+                <input type="number" id="cislo1" placeholder="0.0" step="any" required>
             </div>
             <div class="form-group">
-                <label for="cislo2">Druhé číslo:</label>
-                <input type="number" id="cislo2" placeholder="Zadajte druhé číslo" step="any" required>
+                <label>Druhé číslo</label>
+                <input type="number" id="cislo2" placeholder="0.0" step="any" required>
             </div>
             <div class="form-group">
-                <label>Operácia:</label>
-                <div class="radio-group">
+                <label>Operácia</label>
+                <div class="segmented-control">
                     <div class="radio-option">
                         <input type="radio" id="op_plus" name="operacia" value="plus" checked>
-                        <label for="op_plus">➕ Sčítanie</label>
+                        <label for="op_plus">Sčítanie</label>
                     </div>
                     <div class="radio-option">
                         <input type="radio" id="op_minus" name="operacia" value="minus">
-                        <label for="op_minus">➖ Odčítanie</label>
+                        <label for="op_minus">Odčítanie</label>
                     </div>
                     <div class="radio-option">
                         <input type="radio" id="op_krat" name="operacia" value="krat">
-                        <label for="op_krat">✖️ Násobenie</label>
+                        <label for="op_krat">Násobenie</label>
                     </div>
                     <div class="radio-option">
                         <input type="radio" id="op_deleno" name="operacia" value="deleno">
-                        <label for="op_deleno">➗ Delenie</label>
+                        <label for="op_deleno">Delenie</label>
                     </div>
                 </div>
             </div>
-            <button type="submit" class="submit-btn" id="submitBtnKalk">📤 Vypočítať a odoslať</button>
+            <button type="submit" class="submit-btn" id="submitBtnKalk">Vypočítať</button>
         </form>
         <div class="result-box" id="vysledokBoxKalk">
-            <p style="color:#8892b0;margin-bottom:5px">Výsledok:</p>
+            <p style="color:var(--text-secondary);font-size:0.9em">Výsledok</p>
             <div class="result-number" id="vysledokCislo">—</div>
-            <p style="color:#8892b0;margin-top:5px;font-size:0.85em" id="vysledokDetail"></p>
+            <p class="result-popis" id="vysledokDetail"></p>
         </div>
         <div class="url-preview">
-            <strong>URL Request:</strong><br>
             <span id="urlText">/vypocet?cislo1=_&cislo2=_&operacia=plus</span>
         </div>
         <div class="error-msg" id="chybaMsgKalk"></div>
     </div>
 
-    <!-- ═══════════════════════════════════════
-         SEKCIA 2: PREVODNÍK JEDNOTIEK (NOVÉ)
-         ═══════════════════════════════════════
-         Prvky podľa zadania:
-           ✅ input type="number"
-           ✅ select s 3 typmi prevodu
-           ✅ button type="submit"
-         ═══════════════════════════════════════ -->
     <div class="card">
-        <h2>🌡️ Prevodník IoT jednotiek</h2>
-        <p style="color:#8892b0;margin-bottom:20px;font-size:0.9em">
-            Prevod fyzikálnych veličín. Každý prevod sa uloží do <code>prevody.json</code>.
-        </p>
-
+        <h2>Prevodník jednotiek</h2>
         <form id="prevodnikForm" onsubmit="return odosliPrevod(event)">
-
-            <!-- INPUT TYPE NUMBER — zadanie hodnoty na prevod -->
             <div class="form-group">
-                <label for="hodnotaPrevod">Hodnota na prevod:</label>
-                <input type="number"
-                       id="hodnotaPrevod"
-                       name="hodnota"
-                       placeholder="Zadajte číslo (napr. 25)"
-                       step="any"
-                       required>
+                <label>Hodnota na prevod</label>
+                <input type="number" id="hodnotaPrevod" placeholder="Napr. 25" step="any" required>
             </div>
-
-            <!-- SELECT — výber typu prevodu (°C→°F, hPa→mmHg, m/s→km/h) -->
             <div class="form-group">
-                <label for="typPrevodu">Typ prevodu:</label>
-                <select id="typPrevodu" name="typ" required>
-                    <option value="c_to_f">🌡️ °C → °F &nbsp; (teplota)</option>
-                    <option value="hpa_to_mmhg">🌬️ hPa → mmHg &nbsp; (tlak)</option>
-                    <option value="ms_to_kmh">💨 m/s → km/h &nbsp; (rýchlosť vetra)</option>
+                <label>Typ prevodu</label>
+                <select id="typPrevodu" required>
+                    <option value="c_to_f">°C → °F (Teplota)</option>
+                    <option value="hpa_to_mmhg">hPa → mmHg (Tlak)</option>
+                    <option value="ms_to_kmh">m/s → km/h (Rýchlosť)</option>
                 </select>
             </div>
-
-            <!-- SUBMIT BUTTON — odoslanie formulára -->
-            <button type="submit" class="submit-btn" id="submitBtnPrevod">
-                🔄 Previesť a uložiť
-            </button>
+            <button type="submit" class="submit-btn" id="submitBtnPrevod">Previesť</button>
         </form>
-
-        <!-- Výsledok prevodu -->
         <div class="result-box" id="vysledokBoxPrevod">
-            <p style="color:#8892b0;margin-bottom:5px">Výsledok prevodu:</p>
+            <p style="color:var(--text-secondary);font-size:0.9em">Výsledok</p>
             <div class="result-number" id="prevodVysledok">—</div>
             <p class="result-popis" id="prevodPopis"></p>
-            <p style="color:#555;font-size:0.8em;margin-top:6px" id="prevodCas"></p>
         </div>
-
-        <!-- URL ukážka -->
         <div class="url-preview">
-            <strong>URL Request:</strong><br>
             <span id="urlTextPrevod">/api/prevod?hodnota=_&typ=c_to_f</span>
         </div>
-
         <div class="error-msg" id="chybaMsgPrevod"></div>
     </div>
 
-    <!-- HISTÓRIA KALKULAČKY -->
     <div class="card">
-        <h2>📊 História výpočtov (kalkulačka)</h2>
-        <p style="color:#8892b0;margin-bottom:15px;font-size:0.9em">
-            Dáta z endpointu <code>/api/historia</code> — SQLite databáza
-        </p>
-        <div id="historiaObsah"><p style="color:#8892b0">Načítavam...</p></div>
+        <h2>História výpočtov</h2>
+        <div id="historiaObsah"><p style="color:var(--text-secondary)">Načítavam...</p></div>
     </div>
 
 </div>
@@ -350,142 +306,112 @@ NOVÉ prvky podľa zadania:
 <script>
     const BACKEND_URL = window.location.origin;
 
-    // ── URL preview pre kalkulačku ──
     function aktualizujUrlPreview() {
         const c1 = document.getElementById("cislo1").value || "_";
         const c2 = document.getElementById("cislo2").value || "_";
         const op = document.querySelector('input[name="operacia"]:checked').value;
-        document.getElementById("urlText").innerHTML =
-            `<span class="highlight">${BACKEND_URL}</span>/vypocet?cislo1=${c1}&cislo2=${c2}&operacia=${op}`;
+        document.getElementById("urlText").innerHTML = `<span class="highlight">GET</span> /vypocet?cislo1=${c1}&cislo2=${c2}&operacia=${op}`;
     }
 
-    // ── URL preview pre prevodník ──
     function aktualizujUrlPreviewPrevod() {
         const h = document.getElementById("hodnotaPrevod").value || "_";
         const t = document.getElementById("typPrevodu").value;
-        document.getElementById("urlTextPrevod").innerHTML =
-            `<span class="highlight">${BACKEND_URL}</span>/api/prevod?hodnota=${h}&typ=${t}`;
+        document.getElementById("urlTextPrevod").innerHTML = `<span class="highlight">GET</span> /api/prevod?hodnota=${h}&typ=${t}`;
     }
 
     document.getElementById("cislo1").addEventListener("input", aktualizujUrlPreview);
     document.getElementById("cislo2").addEventListener("input", aktualizujUrlPreview);
-    document.querySelectorAll('input[name="operacia"]').forEach(r =>
-        r.addEventListener("change", aktualizujUrlPreview));
+    document.querySelectorAll('input[name="operacia"]').forEach(r => r.addEventListener("change", aktualizujUrlPreview));
     document.getElementById("hodnotaPrevod").addEventListener("input", aktualizujUrlPreviewPrevod);
     document.getElementById("typPrevodu").addEventListener("change", aktualizujUrlPreviewPrevod);
 
-    // ── Odoslanie kalkulačky ──
     async function odosliKalkulacku(event) {
         event.preventDefault();
         document.getElementById("chybaMsgKalk").style.display = "none";
-
         const c1 = document.getElementById("cislo1").value;
         const c2 = document.getElementById("cislo2").value;
         const op = document.querySelector('input[name="operacia"]:checked').value;
-
         const btn = document.getElementById("submitBtnKalk");
-        btn.innerHTML = '<span class="spinner"></span> Počítam...';
+        
+        btn.textContent = 'Počítam...';
         btn.disabled = true;
 
         try {
             const res = await fetch(`${BACKEND_URL}/vypocet?cislo1=${c1}&cislo2=${c2}&operacia=${op}`);
             const data = await res.json();
-
             if (data.chyba) {
                 zobrazChybu("chybaMsgKalk", data.chyba);
             } else {
                 const sym = { plus:"+", minus:"−", krat:"×", deleno:"÷" }[data.operacia] || "?";
                 document.getElementById("vysledokCislo").textContent = data.vysledok;
-                document.getElementById("vysledokDetail").textContent =
-                    `${data.cislo1} ${sym} ${data.cislo2} = ${data.vysledok}  |  ID: ${data.id}  |  ${data.cas}`;
+                document.getElementById("vysledokDetail").textContent = `${data.cislo1} ${sym} ${data.cislo2} = ${data.vysledok} (ID: ${data.id})`;
                 document.getElementById("vysledokBoxKalk").classList.add("visible");
                 nacitajHistoriu();
             }
         } catch {
             zobrazChybu("chybaMsgKalk", "Nepodarilo sa spojiť so serverom.");
         } finally {
-            btn.innerHTML = "📤 Vypočítať a odoslať";
+            btn.textContent = "Vypočítať";
             btn.disabled = false;
         }
-        return false;
     }
 
-    // ── Odoslanie prevodníka (NOVÁ FUNKCIA) ──
     async function odosliPrevod(event) {
         event.preventDefault();
         document.getElementById("chybaMsgPrevod").style.display = "none";
-
         const hodnota = document.getElementById("hodnotaPrevod").value;
         const typ = document.getElementById("typPrevodu").value;
-
         const btn = document.getElementById("submitBtnPrevod");
-        btn.innerHTML = '<span class="spinner"></span> Prevádzam...';
+        
+        btn.textContent = 'Prevádzam...';
         btn.disabled = true;
 
         try {
-            // GET request na /api/prevod — parametre hodota a typ v URL
-            const url = `${BACKEND_URL}/api/prevod?hodnota=${hodnota}&typ=${typ}`;
-            console.log("📤 Odosielam prevod:", url);
-
-            const res = await fetch(url);
+            const res = await fetch(`${BACKEND_URL}/api/prevod?hodnota=${hodnota}&typ=${typ}`);
             const data = await res.json();
-
             if (data.chyba) {
                 zobrazChybu("chybaMsgPrevod", data.chyba);
             } else {
-                // Zobrazenie výsledku na stránke
                 document.getElementById("prevodVysledok").textContent = data.vysledok;
                 document.getElementById("prevodPopis").textContent = data.popis;
-                document.getElementById("prevodCas").textContent =
-                    `Uložené do prevody.json  |  ${data.cas}`;
                 document.getElementById("vysledokBoxPrevod").classList.add("visible");
             }
         } catch {
             zobrazChybu("chybaMsgPrevod", "Nepodarilo sa spojiť so serverom.");
         } finally {
-            btn.innerHTML = "🔄 Previesť a uložiť";
+            btn.textContent = "Previesť";
             btn.disabled = false;
         }
-        return false;
     }
 
     function zobrazChybu(id, text) {
         const el = document.getElementById(id);
-        el.textContent = "⚠️ " + text;
+        el.textContent = text;
         el.style.display = "block";
     }
 
-    // ── Načítanie histórie kalkulačky ──
     async function nacitajHistoriu() {
         try {
             const res = await fetch(`${BACKEND_URL}/api/historia`);
             const data = await res.json();
-
             if (data.length === 0) {
-                document.getElementById("historiaObsah").innerHTML =
-                    '<p style="color:#8892b0">Zatiaľ žiadne výpočty.</p>';
+                document.getElementById("historiaObsah").innerHTML = '<p style="color:var(--text-secondary)">Zatiaľ žiadne výpočty.</p>';
                 return;
             }
-
             const sym = { plus:"+", minus:"−", krat:"×", deleno:"÷" };
-            let html = `<table class="history-table"><thead><tr>
-                <th>ID</th><th>Výpočet</th><th>Výsledok</th><th>Čas</th>
-            </tr></thead><tbody>`;
-
+            let html = `<table class="history-table"><thead><tr><th>ID</th><th>Výpočet</th><th>Výsledok</th><th>Čas</th></tr></thead><tbody>`;
             data.forEach(item => {
                 html += `<tr>
-                    <td>#${item.id}</td>
+                    <td style="color:var(--text-secondary)">#${item.id}</td>
                     <td>${item.cislo1} ${sym[item.operacia]||"?"} ${item.cislo2}</td>
-                    <td style="color:#00d4ff;font-weight:700">${item.vysledok}</td>
-                    <td style="color:#8892b0;font-size:0.8em">${item.cas}</td>
+                    <td style="color:var(--text-primary);font-weight:600">${item.vysledok}</td>
+                    <td style="color:var(--text-secondary);font-size:0.85em">${item.cas}</td>
                 </tr>`;
             });
-
             html += '</tbody></table>';
             document.getElementById("historiaObsah").innerHTML = html;
         } catch {
-            document.getElementById("historiaObsah").innerHTML =
-                '<p style="color:#ff6b6b">❌ Nepodarilo sa načítať históriu.</p>';
+            document.getElementById("historiaObsah").innerHTML = '<p style="color:var(--danger)">Nepodarilo sa načítať históriu.</p>';
         }
     }
 
